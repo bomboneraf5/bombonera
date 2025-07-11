@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reservas de Canchas Sintéticas - Demo</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #444; color: #fff; }
+    .slot { cursor: pointer; text-align: center; padding: 1rem; margin: .25rem; border-radius: .25rem; white-space: pre-line; }
+    .slot.disponible { background-color: #e0e0e0; color: #000; }
+    .slot.reservada { background-color: #dc3545; color: #fff; }
+    .slot.en-juego { background-color: #ffc107; color: #000; }
+    .slot.pagada { background-color: #198754; color: #fff; }
+    .cancha-btn { margin: .25rem; }
+    #slots-container { display: grid; grid-template-columns: repeat(5, 1fr); }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">La Bombonera Futgol 5</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="offcanvas offcanvas-start text-dark" tabindex="-1" id="sidebar">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Menú</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <ul class="list-unstyled">
+        <li><a href="#" class="d-block p-2">Calendario</a></li>
+        <li><a href="#" class="d-block p-2">Clientes</a></li>
+        <li><a href="#" class="d-block p-2">Facturación</a></li>
+        <li><a href="#" class="d-block p-2">Cerrar Sesión</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+      <label for="fecha" class="me-2 text-white">Fecha:</label>
+      <input type="date" id="fecha" class="form-control w-auto" />
+    </div>
+
+    <div id="cancha-buttons" class="d-flex mb-3">
+      <button class="btn btn-success cancha-btn" data-id="1">Cancha 1<br><small>60 mins</small></button>
+      <button class="btn btn-success cancha-btn" data-id="2">Cancha 2<br><small>60 mins</small></button>
+      <button class="btn btn-success cancha-btn" data-id="3">Cancha 3<br><small>60 mins</small></button>
+      <button class="btn btn-success cancha-btn" data-id="4">Cancha 4<br><small>60 mins</small></button>
+      <button class="btn btn-success cancha-btn" data-id="5">Cancha 5<br><small>60 mins</small></button>
+    </div>
+
+    <h5 id="selected-date-text" class="text-white"></h5>
+    <div id="slots-container"></div>
+  </div>
+
+  <!-- Modal Reserva -->
+  <div class="modal fade" id="modalReserva" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content text-dark">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">Reservar</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formReserva">
+            <input type="hidden" id="canchaId">
+            <div class="mb-2">
+              <label>Fecha y Hora</label>
+              <input type="text" id="slotInfo" class="form-control" readonly>
+            </div>
+            <div class="mb-2">
+              <label>Cédula o Documento *</label>
+              <input type="text" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label>Nombre Completo *</label>
+              <input type="text" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label>Teléfono Celular *</label>
+              <input type="tel" class="form-control" required>
+            </div>
+            <div class="mb-2">
+              <label>Correo Electrónico</label>
+              <input type="email" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-success w-100">Confirmar Reserva</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS + Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const slotsContainer = document.getElementById('slots-container');
+    const fechaInput = document.getElementById('fecha');
+    let selectedCancha = 1;
+
+    // Inicializar fecha con hoy
+    const today = new Date().toISOString().split('T')[0];
+    fechaInput.value = today;
+
+    function renderSlots() {
+      slotsContainer.innerHTML = '';
+      const date = fechaInput.value;
+      const dateObj = new Date(date);
+      document.getElementById('selected-date-text').textContent = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Generar slots de 00:00 a 23:00
+      for (let hour = 0; hour < 24; hour++) {
+        const cell = document.createElement('div');
+        cell.className = 'slot disponible';
+        const timeStr = hour.toString().padStart(2, '0') + ':00';
+        cell.dataset.time = timeStr;
+        cell.textContent = `${timeStr}\nDISPONIBLE`;
+        cell.addEventListener('click', () => openModal(timeStr));
+        slotsContainer.appendChild(cell);
+      }
+    }
+
+    function openModal(timeStr) {
+      const modal = new bootstrap.Modal(document.getElementById('modalReserva'));
+      document.getElementById('canchaId').value = selectedCancha;
+      const date = fechaInput.value;
+      document.getElementById('slotInfo').value = `${date} ${timeStr}`;
+      modal.show();
+    }
+
+    // Manejar selección de cancha
+    document.querySelectorAll('.cancha-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedCancha = btn.dataset.id;
+        document.querySelectorAll('.cancha-btn').forEach(b => b.classList.remove('btn-dark'));
+        btn.classList.add('btn-dark');
+        renderSlots();
+      });
+    });
+
+    fechaInput.addEventListener('change', renderSlots);
+    document.getElementById('formReserva').addEventListener('submit', e => {
+      e.preventDefault();
+      alert(`Reserva confirmada para Cancha ${selectedCancha} a las ${document.getElementById('slotInfo').value}`);
+      bootstrap.Modal.getInstance(document.getElementById('modalReserva')).hide();
+      // Aquí podrías enviar los datos al backend
+    });
+
+    // Render inicial
+    renderSlots();
+  </script>
+</body>
+</html>
